@@ -429,13 +429,18 @@ def run_gpt_prompt_task_decomp(persona,
       return get_fail_safe()
 
   def __func_validate(gpt_response, prompt=""): 
+    # Validate that the response is not an error message
+    if gpt_response in ["GPT API ERROR", "TOKEN LIMIT EXCEEDED", "ChatGPT ERROR"]:
+      return False
     # TODO -- this sometimes generates error 
     try: 
-      __func_clean_up(gpt_response)
+      result = __func_clean_up(gpt_response, prompt)
+      # Validate that we got a non-empty list
+      if not result or not isinstance(result, list):
+        return False
+      return True
     except: 
-      pass
-      # return False
-    return gpt_response
+      return False
 
   def get_fail_safe(): 
     fs = ["asleep"]
