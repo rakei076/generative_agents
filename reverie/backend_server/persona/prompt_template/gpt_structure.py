@@ -102,7 +102,19 @@ def GPT4_safe_generate_response(prompt,
 
     try: 
       curr_gpt_response = GPT4_request(prompt).strip()
+      
+      # Check for API errors
+      if curr_gpt_response in ["ChatGPT ERROR", "GPT API ERROR", "TOKEN LIMIT EXCEEDED"]:
+        if verbose:
+          print (f"---- API error on attempt {i}: {curr_gpt_response}")
+        continue
+      
       end_index = curr_gpt_response.rfind('}') + 1
+      if end_index == 0:  # No closing brace found
+        if verbose:
+          print (f"---- No valid JSON found on attempt {i}")
+        continue
+        
       curr_gpt_response = curr_gpt_response[:end_index]
       curr_gpt_response = json.loads(curr_gpt_response)["output"]
       
@@ -114,9 +126,21 @@ def GPT4_safe_generate_response(prompt,
         print (curr_gpt_response)
         print ("~~~~")
 
-    except: 
+    except json.JSONDecodeError as e:
+      if verbose:
+        print (f"---- JSON decode error on attempt {i}: {str(e)}")
+      pass
+    except KeyError as e:
+      if verbose:
+        print (f"---- Missing 'output' key on attempt {i}")
+      pass
+    except Exception as e:
+      if verbose:
+        print (f"---- Unexpected error on attempt {i}: {str(e)}")
       pass
 
+  if verbose:
+    print ("FAIL SAFE TRIGGERED - returning False")
   return False
 
 
@@ -142,7 +166,19 @@ def ChatGPT_safe_generate_response(prompt,
 
     try: 
       curr_gpt_response = ChatGPT_request(prompt).strip()
+      
+      # Check for API errors
+      if curr_gpt_response in ["ChatGPT ERROR", "GPT API ERROR", "TOKEN LIMIT EXCEEDED"]:
+        if verbose:
+          print (f"---- API error on attempt {i}: {curr_gpt_response}")
+        continue
+      
       end_index = curr_gpt_response.rfind('}') + 1
+      if end_index == 0:  # No closing brace found
+        if verbose:
+          print (f"---- No valid JSON found on attempt {i}")
+        continue
+        
       curr_gpt_response = curr_gpt_response[:end_index]
       curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -158,9 +194,21 @@ def ChatGPT_safe_generate_response(prompt,
         print (curr_gpt_response)
         print ("~~~~")
 
-    except: 
+    except json.JSONDecodeError as e:
+      if verbose:
+        print (f"---- JSON decode error on attempt {i}: {str(e)}")
+      pass
+    except KeyError as e:
+      if verbose:
+        print (f"---- Missing 'output' key on attempt {i}")
+      pass
+    except Exception as e:
+      if verbose:
+        print (f"---- Unexpected error on attempt {i}: {str(e)}")
       pass
 
+  if verbose:
+    print ("FAIL SAFE TRIGGERED - returning False")
   return False
 
 
