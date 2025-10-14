@@ -207,21 +207,35 @@ def GPT_request(prompt, gpt_parameter):
     a str of GPT-3's response. 
   """
   temp_sleep()
+  
+  # Map legacy engine names to new model names
+  engine_to_model = {
+    "text-davinci-003": "gpt-3.5-turbo-instruct",
+    "text-davinci-002": "gpt-3.5-turbo-instruct",
+    "text-curie-001": "gpt-3.5-turbo-instruct",
+    "text-babbage-001": "gpt-3.5-turbo-instruct",
+    "text-ada-001": "gpt-3.5-turbo-instruct"
+  }
+  
+  model = gpt_parameter.get("engine", "gpt-3.5-turbo-instruct")
+  model = engine_to_model.get(model, model)
+  
   try: 
+    # Use the Completion API for instruct models
     response = openai.Completion.create(
-                model=gpt_parameter["engine"],
+                model=model,
                 prompt=prompt,
-                temperature=gpt_parameter["temperature"],
-                max_tokens=gpt_parameter["max_tokens"],
-                top_p=gpt_parameter["top_p"],
-                frequency_penalty=gpt_parameter["frequency_penalty"],
-                presence_penalty=gpt_parameter["presence_penalty"],
-                stream=gpt_parameter["stream"],
-                stop=gpt_parameter["stop"],)
+                temperature=gpt_parameter.get("temperature", 0),
+                max_tokens=gpt_parameter.get("max_tokens", 100),
+                top_p=gpt_parameter.get("top_p", 1),
+                frequency_penalty=gpt_parameter.get("frequency_penalty", 0),
+                presence_penalty=gpt_parameter.get("presence_penalty", 0),
+                stream=gpt_parameter.get("stream", False),
+                stop=gpt_parameter.get("stop", None))
     return response.choices[0].text
-  except: 
-    print ("TOKEN LIMIT EXCEEDED")
-    return "TOKEN LIMIT EXCEEDED"
+  except Exception as e: 
+    print (f"GPT API ERROR: {str(e)}")
+    return "GPT API ERROR"
 
 
 def generate_prompt(curr_input, prompt_lib_file): 
@@ -264,12 +278,20 @@ def safe_generate_response(prompt,
 
   for i in range(repeat): 
     curr_gpt_response = GPT_request(prompt, gpt_parameter)
+    # Check for API errors and skip to next retry
+    if curr_gpt_response in ["GPT API ERROR", "TOKEN LIMIT EXCEEDED", "ChatGPT ERROR"]:
+      if verbose:
+        print (f"---- API error on attempt {i}: {curr_gpt_response}")
+      continue
+    
     if func_validate(curr_gpt_response, prompt=prompt): 
       return func_clean_up(curr_gpt_response, prompt=prompt)
     if verbose: 
       print ("---- repeat count: ", i, curr_gpt_response)
       print (curr_gpt_response)
       print ("~~~~")
+  
+  print ("FAIL SAFE TRIGGERED - returning fail safe response")
   return fail_safe_response
 
 
