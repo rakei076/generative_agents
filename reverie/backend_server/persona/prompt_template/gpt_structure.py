@@ -20,7 +20,7 @@ def ChatGPT_single_request(prompt):
   temp_sleep()
 
   completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
   )
   return completion["choices"][0]["message"]["content"]
@@ -46,7 +46,7 @@ def GPT4_request(prompt):
 
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-4", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -71,7 +71,7 @@ def ChatGPT_request(prompt):
   # temp_sleep()
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -258,14 +258,14 @@ def GPT_request(prompt, gpt_parameter):
   
   # Map legacy engine names to new model names
   engine_to_model = {
-    "text-davinci-003": "gpt-3.5-turbo-instruct",
-    "text-davinci-002": "gpt-3.5-turbo-instruct",
-    "text-curie-001": "gpt-3.5-turbo-instruct",
-    "text-babbage-001": "gpt-3.5-turbo-instruct",
-    "text-ada-001": "gpt-3.5-turbo-instruct"
+    "text-davinci-003": "gpt5-nano",
+    "text-davinci-002": "gpt5-nano",
+    "text-curie-001": "gpt5-nano",
+    "text-babbage-001": "gpt5-nano",
+    "text-ada-001": "gpt5-nano"
   }
   
-  model = gpt_parameter.get("engine", "gpt-3.5-turbo-instruct")
+  model = gpt_parameter.get("engine", "gpt5-nano")
   model = engine_to_model.get(model, model)
   
   try: 
