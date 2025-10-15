@@ -32,6 +32,8 @@ collision_block_id = "32125"
 debug = True
 ```
 Replace `<Your OpenAI API>` with your OpenAI API key, and `<name>` with your name.
+
+**Note on OpenAI API Models:** The codebase now uses `gpt-3.5-turbo-instruct` model for completion tasks. While the code still references legacy model names like `text-davinci-003` internally, they are automatically mapped to the appropriate newer models. Make sure your OpenAI API key has access to the GPT-3.5 models.
  
 ### Step 2. Install requirements.txt
 Install everything listed in the `requirements.txt` file (I strongly recommend first setting up a virtualenv as usual). A note on Python version: we tested our environment on Python 3.9.12. 
@@ -83,6 +85,8 @@ To start the demo, go to the following address on your browser: `http://localhos
 
 ### Tips
 We've noticed that OpenAI's API can hang when it reaches the hourly rate limit. When this happens, you may need to restart your simulation. For now, we recommend saving your simulation often as you progress to ensure that you lose as little of the simulation as possible when you do need to stop and rerun it. Running these simulations, at least as of early 2023, could be somewhat costly, especially when there are many agents in the environment.
+
+**API Error Handling:** The system now includes improved error handling for API calls. If you encounter "GPT API ERROR" messages, check your API key, rate limits, and model access. The system will automatically retry failed requests and fall back to safe default responses when necessary.
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Maria_Lopez.png" alt="Generative Maria">   Simulation Storage Location
 All simulations that you save will be located in `environment/frontend_server/storage`, and all compressed demos will be located in `environment/frontend_server/compressed_storage`. 

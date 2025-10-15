@@ -20,7 +20,7 @@ def ChatGPT_single_request(prompt):
   temp_sleep()
 
   completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
   )
   return completion["choices"][0]["message"]["content"]
@@ -46,7 +46,7 @@ def GPT4_request(prompt):
 
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-4", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -71,7 +71,7 @@ def ChatGPT_request(prompt):
   # temp_sleep()
   try: 
     completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
+    model="gpt5-nano", 
     messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -102,7 +102,19 @@ def GPT4_safe_generate_response(prompt,
 
     try: 
       curr_gpt_response = GPT4_request(prompt).strip()
+      
+      # Check for API errors
+      if curr_gpt_response in ["ChatGPT ERROR", "GPT API ERROR", "TOKEN LIMIT EXCEEDED"]:
+        if verbose:
+          print (f"---- API error on attempt {i}: {curr_gpt_response}")
+        continue
+      
       end_index = curr_gpt_response.rfind('}') + 1
+      if end_index == 0:  # No closing brace found
+        if verbose:
+          print (f"---- No valid JSON found on attempt {i}")
+        continue
+        
       curr_gpt_response = curr_gpt_response[:end_index]
       curr_gpt_response = json.loads(curr_gpt_response)["output"]
       
@@ -114,9 +126,21 @@ def GPT4_safe_generate_response(prompt,
         print (curr_gpt_response)
         print ("~~~~")
 
-    except: 
+    except json.JSONDecodeError as e:
+      if verbose:
+        print (f"---- JSON decode error on attempt {i}: {str(e)}")
+      pass
+    except KeyError as e:
+      if verbose:
+        print (f"---- Missing 'output' key on attempt {i}")
+      pass
+    except Exception as e:
+      if verbose:
+        print (f"---- Unexpected error on attempt {i}: {str(e)}")
       pass
 
+  if verbose:
+    print ("FAIL SAFE TRIGGERED - returning False")
   return False
 
 
@@ -142,7 +166,19 @@ def ChatGPT_safe_generate_response(prompt,
 
     try: 
       curr_gpt_response = ChatGPT_request(prompt).strip()
+      
+      # Check for API errors
+      if curr_gpt_response in ["ChatGPT ERROR", "GPT API ERROR", "TOKEN LIMIT EXCEEDED"]:
+        if verbose:
+          print (f"---- API error on attempt {i}: {curr_gpt_response}")
+        continue
+      
       end_index = curr_gpt_response.rfind('}') + 1
+      if end_index == 0:  # No closing brace found
+        if verbose:
+          print (f"---- No valid JSON found on attempt {i}")
+        continue
+        
       curr_gpt_response = curr_gpt_response[:end_index]
       curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -158,9 +194,21 @@ def ChatGPT_safe_generate_response(prompt,
         print (curr_gpt_response)
         print ("~~~~")
 
-    except: 
+    except json.JSONDecodeError as e:
+      if verbose:
+        print (f"---- JSON decode error on attempt {i}: {str(e)}")
+      pass
+    except KeyError as e:
+      if verbose:
+        print (f"---- Missing 'output' key on attempt {i}")
+      pass
+    except Exception as e:
+      if verbose:
+        print (f"---- Unexpected error on attempt {i}: {str(e)}")
       pass
 
+  if verbose:
+    print ("FAIL SAFE TRIGGERED - returning False")
   return False
 
 
@@ -207,21 +255,35 @@ def GPT_request(prompt, gpt_parameter):
     a str of GPT-3's response. 
   """
   temp_sleep()
+  
+  # Map legacy engine names to new model names
+  engine_to_model = {
+    "text-davinci-003": "gpt5-nano",
+    "text-davinci-002": "gpt5-nano",
+    "text-curie-001": "gpt5-nano",
+    "text-babbage-001": "gpt5-nano",
+    "text-ada-001": "gpt5-nano"
+  }
+  
+  model = gpt_parameter.get("engine", "gpt5-nano")
+  model = engine_to_model.get(model, model)
+  
   try: 
+    # Use the Completion API for instruct models
     response = openai.Completion.create(
-                model=gpt_parameter["engine"],
+                model=model,
                 prompt=prompt,
-                temperature=gpt_parameter["temperature"],
-                max_tokens=gpt_parameter["max_tokens"],
-                top_p=gpt_parameter["top_p"],
-                frequency_penalty=gpt_parameter["frequency_penalty"],
-                presence_penalty=gpt_parameter["presence_penalty"],
-                stream=gpt_parameter["stream"],
-                stop=gpt_parameter["stop"],)
+                temperature=gpt_parameter.get("temperature", 0),
+                max_tokens=gpt_parameter.get("max_tokens", 100),
+                top_p=gpt_parameter.get("top_p", 1),
+                frequency_penalty=gpt_parameter.get("frequency_penalty", 0),
+                presence_penalty=gpt_parameter.get("presence_penalty", 0),
+                stream=gpt_parameter.get("stream", False),
+                stop=gpt_parameter.get("stop", None))
     return response.choices[0].text
-  except: 
-    print ("TOKEN LIMIT EXCEEDED")
-    return "TOKEN LIMIT EXCEEDED"
+  except Exception as e: 
+    print (f"GPT API ERROR: {str(e)}")
+    return "GPT API ERROR"
 
 
 def generate_prompt(curr_input, prompt_lib_file): 
@@ -264,12 +326,20 @@ def safe_generate_response(prompt,
 
   for i in range(repeat): 
     curr_gpt_response = GPT_request(prompt, gpt_parameter)
+    # Check for API errors and skip to next retry
+    if curr_gpt_response in ["GPT API ERROR", "TOKEN LIMIT EXCEEDED", "ChatGPT ERROR"]:
+      if verbose:
+        print (f"---- API error on attempt {i}: {curr_gpt_response}")
+      continue
+    
     if func_validate(curr_gpt_response, prompt=prompt): 
       return func_clean_up(curr_gpt_response, prompt=prompt)
     if verbose: 
       print ("---- repeat count: ", i, curr_gpt_response)
       print (curr_gpt_response)
       print ("~~~~")
+  
+  print ("FAIL SAFE TRIGGERED - returning fail safe response")
   return fail_safe_response
 
 
