@@ -1,5 +1,4 @@
 
-
 # Generative Agents: Interactive Simulacra of Human Behavior 
 
 <p align="center" width="100%">
@@ -32,9 +31,24 @@ collision_block_id = "32125"
 debug = True
 ```
 Replace `<Your OpenAI API>` with your OpenAI API key, and `<name>` with your name.
+
+### Step 1.1. Configure Model (Optional)
+The system now uses **GPT-5-nano** as the default model. You can override this by setting the `OPENAI_MODEL` environment variable:
+```bash
+export OPENAI_MODEL="gpt-4"  # or any other supported model
+```
+
+If you don't set this variable, the system will use `gpt-5-nano` by default.
  
 ### Step 2. Install requirements.txt
-Install everything listed in the `requirements.txt` file (I strongly recommend first setting up a virtualenv as usual). A note on Python version: we tested our environment on Python 3.9.12. 
+Install everything listed in the `requirements.txt` file (I strongly recommend first setting up a virtualenv as usual). 
+
+**Important**: This codebase has been updated to use the modern OpenAI API (v0.27.0 or later). The minimum supported version is:
+```
+openai>=0.27.0
+```
+
+A note on Python version: we tested our environment on Python 3.9.12. 
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Klaus_Mueller.png" alt="Generative Klaus">   Running a Simulation 
 To run a new simulation, you will need to concurrently start two servers: the environment server and the agent simulation server.
@@ -83,6 +97,21 @@ To start the demo, go to the following address on your browser: `http://localhos
 
 ### Tips
 We've noticed that OpenAI's API can hang when it reaches the hourly rate limit. When this happens, you may need to restart your simulation. For now, we recommend saving your simulation often as you progress to ensure that you lose as little of the simulation as possible when you do need to stop and rerun it. Running these simulations, at least as of early 2023, could be somewhat costly, especially when there are many agents in the environment.
+
+### Testing
+The codebase includes unit tests to validate the OpenAI API integration and error handling:
+
+```bash
+cd reverie/backend_server/persona/prompt_template
+python3 test_gpt_structure.py -v
+```
+
+These tests verify:
+- Correct parameter schema for the Responses API
+- Legacy parameter normalization (e.g., `engine` → `model`)
+- Error handling and fallback behavior
+- JSON response parsing
+- Empty/malformed response handling
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Maria_Lopez.png" alt="Generative Maria">   Simulation Storage Location
 All simulations that you save will be located in `environment/frontend_server/storage`, and all compressed demos will be located in `environment/frontend_server/compressed_storage`. 
@@ -137,5 +166,31 @@ We encourage you to support the following three amazing artists who have designe
 * Character design: [ぴぽ (@pipohi)](https://twitter.com/pipohi)
 
 In addition, we thank Lindsay Popowski, Philip Guo, Michael Terry, and the Center for Advanced Study in the Behavioral Sciences (CASBS) community for their insights, discussions, and support. Lastly, all locations featured in Smallville are inspired by real-world locations that Joon has frequented as an undergraduate and graduate student---he thanks everyone there for feeding and supporting him all these years.
+
+## API Migration Notes
+
+This codebase has been updated to use the modern OpenAI Responses API schema. Key changes include:
+
+### Updated Parameter Schema
+All GPT request parameters have been modernized:
+- `engine` → `model` (with automatic normalization to `gpt-5-nano`)
+- `max_tokens` → `max_output_tokens`
+- Removed unsupported parameters: `frequency_penalty`, `presence_penalty`, `stream`, `stop` (when string)
+- `top_p` is only included when it differs from the default value of 1
+
+### Enhanced Error Handling
+- Guards against empty or malformed responses
+- Automatic retry logic with configurable attempts
+- Sensible fallbacks for JSON parsing errors
+- Improved logging that doesn't expose API keys
+- Graceful handling of rate limits and API errors
+
+### Model Configuration
+- Default model: `gpt-5-nano`
+- Override via environment variable: `export OPENAI_MODEL="your-model"`
+- Automatic normalization of legacy model names
+
+### Environment Variables
+- `OPENAI_MODEL`: Override the default model (optional, defaults to `gpt-5-nano`)
 
 
